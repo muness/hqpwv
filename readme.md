@@ -36,31 +36,46 @@ Front-end code consists of untranspiled, vanilla ES6 classes.
 
 # Docker Deployment
 
-You can run HQPWV in a Docker container (ideal for devices like a NAS or server):
+For quick testing or one-off runs, you can launch HQPWV using Docker directly:
 
-1. Build the Docker image (if not using a prebuilt one from Docker Hub):
+```bash
+docker run -d \
+  -p 8080:8000 \
+  -e HQPLAYER_HOST=192.168.1.6 \
+  --name hqpwv \
+  muness/hqpwv:latest
+```
 
-    ```bash
-    docker build -t muness/hqpwv .
+- Replace `192.168.1.6` with the IP address of your HQPlayer Desktop instance.
+- The web UI will be available at `http://<host-ip>:8080`.
+
+Note: On macOS or Windows hosts, UDP-based HQPlayer discovery is not available inside Docker containers, so using `HQPLAYER_HOST` is required.
+
+For longer-term or multi-service deployments (e.g. on a NAS), see the Docker Compose section below.
+
+## Docker Compose Deployment
+
+For a more streamlined and repeatable setup, you can deploy HQPWV using Docker Compose:
+
+1. Create a `docker-compose.yml` file with the following content:
+
+    ```yaml
+    services:
+      hqpwv:
+        image: muness/hqpwv:latest
+        container_name: hqpwv
+        ports:
+          - "8080:8000"
+        environment:
+          - HQPLAYER_HOST=192.168.1.6
     ```
 
-2. Or pull the latest image from Docker Hub:
+    - Replace `192.168.1.6` with the actual IP address of your HQPlayer Desktop instance.
+
+2. Start the service:
 
     ```bash
-    docker pull muness/hqpwv:latest
+    docker compose up -d
     ```
 
-3. Run the container with your HQPlayer Desktop's IP:
-
-    ```bash
-    docker run -d \
-      -p 8080:8000 \
-      -e HQPLAYER_HOST=192.168.1.6 \
-      --name hqpwv \
-      muness/hqpwv:latest
-    ```
-
-    - Replace `192.168.1.6` with the actual IP of your HQPlayer Desktop instance.
-    - The web UI will then be available at `http://<host-ip>:8080`.
-
-Note: On macOS or Windows hosts, UDP-based HQPlayer discovery is not available inside Docker containers, so using `HQPLAYER_HOST` is required in those environments.
+3. Open your browser to `http://<host-ip>:8080` to use the web UI.
