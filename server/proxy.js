@@ -34,13 +34,22 @@ let validHqpHostnames = [];
 
 let isFirstChunk = true;
 let clientRequestXml; // The request data fro the client
-let clientRequestAsJson; 
+let clientRequestAsJson;
 let responseCallback; // The callback to be invoked upon completion of the current 'command'
 let normalBuffer = Buffer.alloc(0); // The buffered data which accumulates until complete, used for 'normal' responses
 let isPossiblyMultiChunk;
 
 const start = (callback) => {
   initCallback = callback;
+
+  const overrideIp = process.env.HQPLAYER_HOST;
+  if (overrideIp) {
+    log.x(`[i] Skipping discovery, using HQPLAYER_HOST: ${overrideIp}`);
+    hqpIp = overrideIp;
+    initSocket();
+    return;
+  }
+
   initDiscoverySocket();
 };
 
@@ -50,7 +59,7 @@ const initDiscoverySocket = () => {
 	}
   log.x('creating udp socket');
 	discoSocket = dgram.createSocket('udp4');
-	
+
   discoSocket.on('error', () => {
     log.w(`udp socket error:\n${err.stack}\n`);
     discoSocket.close();
