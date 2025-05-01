@@ -8,11 +8,13 @@ const express = require('express');
 const bodyParser = require("body-parser");
 const app = express();
 const ip = require('ip');
+const { Worker } = require('worker_threads');
 
 const log = require('./log');
 const packageJson = require('./../package.json');
 const proxy = require('./proxy');
 const meta = require('./meta');
+const authMeta = require('./auth-metadata');
 const commandHandler = require('./server-command-handler');
 const metaHandler = require('./server-meta-handler');
 const playlistHandler = require('./server-playlist-handler');
@@ -25,6 +27,7 @@ const DEFAULT_PORT = 8000;
 let port;
 let server;
 let hqpIp;
+let authWorker;
 
 // ---
 
@@ -48,12 +51,12 @@ app.get('/endpoints/command', (request, response) => {
  * 'native'
  */
 app.get('/endpoints/native', (request, response) => {
-
   if (request.query.info !== undefined) {
     response.send({
       hqplayer_ip_address: hqpIp,
       server_ip_address: ip.address(),
-      hqpwv_version: packageJson.version
+      hqpwv_version: packageJson.version,
+      auth_state: authMeta.getState()
     });
     return;
   }
@@ -79,10 +82,53 @@ app.post('/endpoints/playlist', (request, response) => {
   playlistHandler.doPost(request, response);
 });
 
+/**
+ * 'auth'
+ */
+app.post('/endpoints/auth', (request, response) => {
+  if (!authWorker) {
+    response.status(500).json({ error: 'auth_not_ready' });
+    return;
+  }
+
+  const message = request.body;
+  authWorker.postMessage(message);
+
+  authWorker.once('message', (result) => {
+    if (result.error) {
+      response.status(400).json(result);
+    } else {
+      response.json(result);
+    }
+  });
+});
+
 // ---
 
 const onProxyReady = (ip) => {
   hqpIp = ip;
+
+  // Initialize auth worker
+  authWorker = new Worker(path.join(__dirname, 'auth-thread.js'));
+  authWorker.on('error', (error) => {
+    log.x('Auth worker error:', error);
+    authWorker = null;
+    authMeta.setConnected(false);
+  });
+  authWorker.on('message', (message) => {
+    console.log('Auth worker message:', message);
+    if (message.type === 'connected') {
+      console.log('Setting connected state to true');
+      authMeta.setConnected(true);
+      authMeta.setSession(message.sessionId);
+      authMeta.setHQPVersion(message.hqpVersion);
+    } else if (message.type === 'disconnected') {
+      console.log('Setting connected state to false');
+      authMeta.setConnected(false);
+    }
+  });
+  log.x('auth worker ready');
+
   // Start server
   server = app.listen(port, onSuccess).on('error', onError);
 
@@ -183,6 +229,9 @@ const showPromptAndExit = () => {
 process.on( "SIGINT", function() {
   if (meta.getIsDirty()) {
     meta.saveFile();
+  }
+  if (authWorker) {
+    authWorker.terminate();
   }
   log.x('done');
   process.exit();

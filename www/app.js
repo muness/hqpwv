@@ -53,6 +53,13 @@ export default class App {
   resizeTimeoutId = 0;
   subviewZ = 100;
 
+  authState = {
+    isConnected: false,
+    lastCheck: null,
+    sessionId: null,
+    hqpVersion: null
+  };
+
 	constructor() {
     if (!window.hqpwv) {
       window.hqpwv = {};
@@ -110,6 +117,9 @@ export default class App {
 
     PresetRuleApplier.noop();
     FullAlbumOverlay.noop();
+
+    this.updateAuthState();
+    setInterval(() => this.updateAuthState(), 5000);
 
     this.init();
 	}
@@ -592,5 +602,20 @@ export default class App {
     const title = `HQPWV Server is not responding`;
     let msg = `Restart server if necessary. <span class="colorTextLess"><a href="${Values.TROUBLESHOOTING_HREF}">Troubleshooting tips<a>.</span>`;
     SnackView.show('server-error', title, msg);
+  }
+
+  async updateAuthState() {
+    try {
+      const response = await fetch('/endpoints/native?info');
+      const data = await response.json();
+      console.log('Auth state update:', data.auth_state);
+      if (data.auth_state) {
+        this.authState = data.auth_state;
+        TopBar.setConnectionStatus(this.authState.isConnected);
+      }
+    } catch (err) {
+      console.error('Error updating auth state:', err);
+      TopBar.setConnectionStatus(false);
+    }
   }
 }

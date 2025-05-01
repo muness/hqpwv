@@ -1,5 +1,6 @@
 import Util from './util.js';
 import ViewUtil from './view-util.js';
+import AuthMetadataView from './auth-metadata-view.js';
 
 /**
  *
@@ -10,9 +11,21 @@ class TopBar {
   $appLogo = this.$el.find('#appLogo');
   $appTitle = this.$el.find('#appTitle');
   $topBarButtons = $('#topBarButtons');
+  $connectionStatus = $('#connectionStatus');
 
   constructor() {
+    console.log('TopBar initialized, connectionStatus:', this.$connectionStatus.length);
     ViewUtil.setVisible(this.$appTitle, false);
+    this.setConnectionStatus(false);
+    this.$connectionStatus.on('click', () => {
+      console.log('Connection status clicked');
+      if (window.app) {
+        console.log('App found, authState:', window.app.authState);
+        AuthMetadataView.show(window.app.authState);
+      } else {
+        console.error('App not found');
+      }
+    });
   }
 
   get $el() {
@@ -50,6 +63,14 @@ class TopBar {
           this.$appLogo.css('opacity', 0);
         },
         () => this.$appLogo.css('opacity', 1));
+  }
+
+  setConnectionStatus(isConnected) {
+    if (isConnected) {
+      this.$connectionStatus.addClass('isConnected');
+    } else {
+      this.$connectionStatus.removeClass('isConnected');
+    }
   }
 }
 

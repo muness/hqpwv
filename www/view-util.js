@@ -17,7 +17,7 @@ ViewUtil.setVisible = ($el, b) => {
   } else {
     value = b ? 'visible' : 'hidden';
   }
-	$el.css("visibility", value);
+  $el.css("visibility", value);
 };
 
 ViewUtil.isVisible = ($el) => {
