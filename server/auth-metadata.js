@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const AUTH_METADATA_PATH = path.join(__dirname, 'auth-metadata.json');
+const AUTH_METADATA_PATH = path.join(process.cwd(), 'hqpwv-auth-metadata.json');
 
 class AuthMetadata {
   constructor() {
