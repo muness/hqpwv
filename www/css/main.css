@@ -3069,6 +3069,7 @@ select * {
 #authMetadataView .view-content {
   max-height: 400px;
   overflow-y: auto;
+  padding-top: 16px;
 }
 
 .auth-metadata-section {
