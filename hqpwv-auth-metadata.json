@@ -1,7 +1,11 @@
 {
-  "clientKeys": [],
-  "serverKeys": {
-    "publicKey": "MCowBQYDK2VwAyEA6zb7TA4OiTWc0XMETAdfqyAT8Fagvlf2XBTChKJGWTQ=",
-    "privateKey": "MC4CAQAwBQYDK2VwBCIEIO7xEFkXKUcM5prVJv5q4jfGJ/6VoEB6F3WS4Vq3Zj9+"
-  }
+  "clientKeys": [
+    [
+      "hqpwv-server",
+      {
+        "publicKey": "MCowBQYDK2VwAyEAYJWirvKQVDO2WfbHfIb0wY0dDKYfsWKitdeTAmdJkDk=",
+        "privateKey": "MC4CAQAwBQYDK2VwBCIEIIfAYEid05za1FMk2F/G/i4GNJUmrsQx0rXdwYd6CXN1"
+      }
+    ]
+  ]
 }

@@ -145,6 +145,18 @@ Commands.volumeDown = () => {
   return `<VolumeDown />`;
 };
 
+// Add configuration commands
+Commands.configurationList = () => {
+  return `<ConfigurationList />`;
+};
+
+Commands.configurationGet = () => {
+  return `<ConfigurationGet />`;
+};
+
+Commands.configurationLoad = (name) => {
+  return `<ConfigurationLoad value="${name}" />`;
+};
 
 // Higher-level functions
 

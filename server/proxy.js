@@ -39,6 +39,9 @@ let responseCallback; // The callback to be invoked upon completion of the curre
 let normalBuffer = Buffer.alloc(0); // The buffered data which accumulates until complete, used for 'normal' responses
 let isPossiblyMultiChunk;
 
+// Add retry count for exponential backoff
+let retryCount = 0;
+
 const start = (callback) => {
   initCallback = callback;
   initDiscoverySocket();
@@ -173,6 +176,7 @@ const initSocket = () => {
   // IP has proven to be more reliable when reconnecting windows hqpwv server to mac hqplayer, fwiw.
   socket = net.createConnection(PORT, hqpIp, () => {
     log.x('tcp socket connected');  // rem, still need to wait for 'ready'
+    retryCount = 0; // Reset retry count on successful connection
   });
   socket.on("error", onSocketError);
   socket.on("end", onSocketEnd);
@@ -197,8 +201,12 @@ const onSocketError = (error) => {
     doCallback({error: "socket_error"});
   }
   reset();
-  // Try to reconnect
-  setTimeout(initSocket, 2000);
+  // Try to reconnect with exponential backoff
+  const delay = Math.min(2000 * Math.pow(2, retryCount), 30000); // Max 30 seconds
+  setTimeout(() => {
+    retryCount++;
+    initSocket();
+  }, delay);
 };
 
 const onSocketEnd = () => {
@@ -209,7 +217,8 @@ const onSocketEnd = () => {
     doCallback({ error: "socket_end" });
   }
   reset();
-  initSocket();
+  // Add a small delay before reconnecting
+  setTimeout(initSocket, 1000);
 }
 
 // -------------------------------------------------------------------

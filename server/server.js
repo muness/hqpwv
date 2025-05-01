@@ -29,55 +29,7 @@ let server;
 let hqpIp;
 let authWorker;
 
-// Setup auth worker message handlers
-function setupAuthWorkerHandlers() {
-  if (!authWorker) return;
-
-  authWorker.on('message', (message) => {
-    console.log('Auth worker message received:', message);
-    
-    switch (message.type) {
-      case 'ready':
-        console.log('Auth worker ready, checking connection state');
-        // Reset auth state
-        authMeta.setConnected(false);
-        authMeta.setSession(null);
-        authMeta.setHQPVersion(null);
-        // Wait a bit before checking connection state
-        setTimeout(() => {
-          if (authWorker) {
-            console.log('Checking connection state after initialization');
-            authWorker.postMessage({ type: 'CheckConnection' });
-          }
-        }, 1000);
-        break;
-        
-      case 'connected':
-        console.log('Setting connected state to true');
-        authMeta.setConnected(true);
-        authMeta.setSession(message.sessionId);
-        authMeta.setHQPVersion(message.hqpVersion);
-        break;
-        
-      case 'disconnected':
-        console.log('Setting connected state to false');
-        authMeta.setConnected(false);
-        authMeta.setSession(null);
-        authMeta.setHQPVersion(null);
-        // Try to authenticate again after a short delay
-        setTimeout(() => {
-          if (authWorker) {
-            console.log('Attempting to authenticate after disconnect');
-            authWorker.postMessage({ type: 'CheckConnection' });
-          }
-        }, 1000);
-        break;
-        
-      default:
-        console.log('Unknown message type from auth worker:', message.type);
-    }
-  });
-}
+// ---
 
 if (__dirname.includes('/lee/')) {
   log.setLevel(log.LEVEL_VERBOSE);
@@ -197,6 +149,56 @@ const onProxyReady = (ip) => {
     log.x('custom playlists ready');
   }
 };
+
+// Setup auth worker message handlers
+function setupAuthWorkerHandlers() {
+  if (!authWorker) return;
+
+  authWorker.on('message', (message) => {
+    console.log('Auth worker message received:', message);
+    
+    switch (message.type) {
+      case 'ready':
+        console.log('Auth worker ready, checking connection state');
+        // Reset auth state
+        authMeta.setConnected(false);
+        authMeta.setSession(null);
+        authMeta.setHQPVersion(null);
+        // Wait a bit before checking connection state
+        setTimeout(() => {
+          if (authWorker) {
+            console.log('Checking connection state after initialization');
+            authWorker.postMessage({ type: 'CheckConnection' });
+          }
+        }, 1000);
+        break;
+        
+      case 'connected':
+        console.log('Setting connected state to true');
+        authMeta.setConnected(true);
+        authMeta.setSession(message.sessionId);
+        authMeta.setHQPVersion(message.hqpVersion);
+        break;
+        
+      case 'disconnected':
+        console.log('Setting connected state to false');
+        authMeta.setConnected(false);
+        authMeta.setSession(null);
+        authMeta.setHQPVersion(null);
+        // Try to authenticate again after a short delay
+        setTimeout(() => {
+          if (authWorker) {
+            console.log('Attempting to authenticate after disconnect');
+            authWorker.postMessage({ type: 'CheckConnection' });
+          }
+        }, 1000);
+        break;
+        
+      default:
+        console.log('Unknown message type from auth worker:', message.type);
+    }
+  });
+}
 
 // ---
 

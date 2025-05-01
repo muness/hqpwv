@@ -1,0 +1,94 @@
+{
+    "general": [
+      { "command": "Reset" },
+      { "command": "GetInfo" },
+      { "command": "GetLicense" },
+      { "command": "Status", "params": ["subscribe"] },
+      { "command": "State" }
+    ],
+    "configuration": [
+      { "command": "ConfigurationList" },
+      { "command": "ConfigurationGet" },
+      { "command": "ConfigurationLoad", "params": ["value (encrypted)", "nonce"], "requires_auth": true }
+    ],
+    "library": [
+      { "command": "LibraryLoad", "params": ["value (encrypted)", "nonce"], "requires_auth": true },
+      { "command": "LibraryGet", "params": ["pictures"] },
+      { "command": "LibraryPicture", "params": ["path or hash"] },
+      { "command": "LibraryFavoriteGet", "params": ["path or hash", "file"] },
+      { "command": "LibraryFavoriteSet", "params": ["path or hash", "file", "value"] },
+      { "command": "LibraryFavoriteSetCurrent", "params": ["value"] }
+    ],
+    "playlist": [
+      { "command": "PlaylistAdd", "params": ["uri or secure_uri", "queued", "clear", "start", "freewheel", "metadata", "nonce (if secure)"], "requires_auth": true },
+      { "command": "PlaylistRemove", "params": ["index"] },
+      { "command": "PlaylistMoveUp", "params": ["index"] },
+      { "command": "PlaylistMoveDown", "params": ["index"] },
+      { "command": "PlaylistGet", "params": ["picture"] },
+      { "command": "PlaylistGetSingle", "params": ["name"] },
+      { "command": "PlaylistGetAll" },
+      { "command": "PlaylistGetList" },
+      { "command": "PlaylistLoad", "params": ["name"] },
+      { "command": "PlaylistSave", "params": ["name"] },
+      { "command": "PlaylistDelete", "params": ["name"] },
+      { "command": "PlaylistUpload", "params": ["filename", "data"] },
+      { "command": "PlaylistClear" }
+    ],
+    "playback": [
+      { "command": "Play", "params": ["last"] },
+      { "command": "Pause" },
+      { "command": "Stop" },
+      { "command": "Next" },
+      { "command": "Previous" },
+      { "command": "Forward" },
+      { "command": "Backward" },
+      { "command": "Seek", "params": ["position"] },
+      { "command": "SelectTrack", "params": ["index"] },
+      { "command": "PlayNextURI", "params": ["value or secure_value", "freewheel", "metadata", "nonce (if secure)"], "requires_auth": true },
+      { "command": "LoadRemovable" }
+    ],
+    "volume": [
+      { "command": "VolumeDown" },
+      { "command": "VolumeUp" },
+      { "command": "VolumeMute" },
+      { "command": "Volume", "params": ["value"] },
+      { "command": "VolumeRange" }
+    ],
+    "filters_and_dsp": [
+      { "command": "SetMode", "params": ["value"] },
+      { "command": "SetFilter", "params": ["value", "value1x (optional)"] },
+      { "command": "SetShaping", "params": ["value"] },
+      { "command": "SetRate", "params": ["value"] },
+      { "command": "SetInvert", "params": ["value"] },
+      { "command": "SetAdaptive", "params": ["value"] },
+      { "command": "SetConvolution", "params": ["value"] },
+      { "command": "Set20kFilter", "params": ["value"] },
+      { "command": "SetRepeat", "params": ["value"] },
+      { "command": "SetRandom", "params": ["value"] },
+      { "command": "GetModes" },
+      { "command": "GetFilters" },
+      { "command": "GetShapers" },
+      { "command": "GetRates" }
+    ],
+    "display_and_transport": [
+      { "command": "SetDisplay", "params": ["value"] },
+      { "command": "GetDisplay" },
+      { "command": "GetTransport" },
+      { "command": "SetTransport", "params": ["value", "arg", "freewheel"] },
+      { "command": "SetTransportPath", "params": ["value", "freewheel"] },
+      { "command": "SetTransportRate", "params": ["value"] }
+    ],
+    "inputs": [
+      { "command": "GetInputs" }
+    ],
+    "matrix": [
+      { "command": "MatrixListProfiles" },
+      { "command": "MatrixGetProfile" },
+      { "command": "MatrixSetProfile", "params": ["value"] }
+    ],
+    "metering": [
+      { "command": "SetMetering", "params": ["enabled"] },
+      { "command": "GetMetering" }
+    ]
+  }
+  
