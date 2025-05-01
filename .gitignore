@@ -6,3 +6,7 @@ www/css/main.css.map
 
 hqpwv-metadata*
 hqpwv-playlists/
+hqpwv-auth-metadata*
+
+# Authentication metadata
+server/auth-metadata.json
