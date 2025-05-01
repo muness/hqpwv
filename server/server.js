@@ -185,6 +185,13 @@ function setupAuthWorkerHandlers() {
         authMeta.setConnected(false);
         authMeta.setSession(null);
         authMeta.setHQPVersion(null);
+        // Try to authenticate again after a short delay
+        setTimeout(() => {
+          if (authWorker) {
+            console.log('Attempting to authenticate after disconnect');
+            authWorker.postMessage({ type: 'CheckConnection' });
+          }
+        }, 1000);
         break;
         
       default:

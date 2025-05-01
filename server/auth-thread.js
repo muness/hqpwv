@@ -26,37 +26,21 @@ class AuthThread {
                 const data = fs.readFileSync(this.metadataPath, 'utf8');
                 const metadata = JSON.parse(data);
                 this.clientKeys = new Map(metadata.clientKeys || []);
-                this.serverKeys = metadata.serverKeys || this.generateServerKeys();
             } else {
                 this.clientKeys = new Map();
-                this.serverKeys = this.generateServerKeys();
                 this.saveMetadata();
             }
         } catch (error) {
             console.error('Error loading auth metadata:', error);
             this.clientKeys = new Map();
-            this.serverKeys = this.generateServerKeys();
             this.saveMetadata();
         }
-    }
-
-    generateServerKeys() {
-        // Generate Ed25519 keypair for server
-        const { publicKey, privateKey } = crypto.generateKeyPairSync('ed25519', {
-            publicKeyEncoding: { type: 'spki', format: 'der' },
-            privateKeyEncoding: { type: 'pkcs8', format: 'der' }
-        });
-        return {
-            publicKey: publicKey.toString('base64'),
-            privateKey: privateKey.toString('base64')
-        };
     }
 
     saveMetadata() {
         try {
             const metadata = {
-                clientKeys: Array.from(this.clientKeys.entries()),
-                serverKeys: this.serverKeys
+                clientKeys: Array.from(this.clientKeys.entries())
             };
             fs.writeFileSync(this.metadataPath, JSON.stringify(metadata, null, 2));
         } catch (error) {
@@ -66,6 +50,54 @@ class AuthThread {
 
     handleMessage(message) {
         switch (message.type) {
+            case 'ready':
+                return { type: 'ready' };
+            case 'CheckConnection':
+                // Authenticate with HQPlayer directly
+                try {
+                    // Get or generate client keys
+                    const clientId = 'hqpwv-server';
+                    let clientKeys = this.clientKeys.get(clientId);
+                    
+                    if (!clientKeys) {
+                        // Generate new client keys if they don't exist
+                        const { publicKey, privateKey } = crypto.generateKeyPairSync('ed25519');
+                        clientKeys = {
+                            publicKey: publicKey.export({ type: 'spki', format: 'der' }).toString('base64'),
+                            privateKey: privateKey.export({ type: 'pkcs8', format: 'der' }).toString('base64')
+                        };
+                        this.clientKeys.set(clientId, clientKeys);
+                        this.saveMetadata();
+                    }
+
+                    // Generate signature of ECDH public key
+                    const privateKeyObj = crypto.createPrivateKey({
+                        key: Buffer.from(clientKeys.privateKey, 'base64'),
+                        type: 'pkcs8',
+                        format: 'der'
+                    });
+                    const signature = crypto.sign(null, this.ecdh.getPublicKey(), privateKeyObj);
+
+                    // Send authentication request
+                    const authResponse = this.handleSessionAuthentication({
+                        clientId,
+                        publicKey: this.ecdh.getPublicKey().toString('base64'),
+                        signature: signature.toString('base64')
+                    });
+
+                    if (authResponse.error) {
+                        return { type: 'disconnected', error: authResponse.error };
+                    }
+
+                    return { 
+                        type: 'connected',
+                        sessionId: authResponse.sessionId,
+                        hqpVersion: '1.0.0'
+                    };
+                } catch (error) {
+                    console.error('Error authenticating with HQPlayer:', error);
+                    return { type: 'disconnected', error: error.message };
+                }
             case 'SessionAuthentication':
                 return this.handleSessionAuthentication(message);
             case 'VerifySession':
@@ -95,24 +127,21 @@ class AuthThread {
             }
 
             // 2. Generate shared secret using ECDH
-            const sharedSecret = this.ecdh.computeSecret(publicKey);
+            const sharedSecret = this.ecdh.computeSecret(Buffer.from(publicKey, 'base64'));
 
-            // 3. Create session key using ChaCha20Poly1305
-            const sessionKey = crypto.createHash('sha256').update(sharedSecret).digest();
+            // 3. Create session key (32 bytes) directly from shared secret
+            const sessionKey = sharedSecret.slice(0, 32);
 
-            // 4. Encrypt metadata (version info)
+            // 4. Encrypt version info using ChaCha20Poly1305
             const nonce = crypto.randomBytes(12);
             const cipher = crypto.createCipheriv('chacha20-poly1305', sessionKey, nonce, {
                 authTagLength: 16
             });
             
-            const metadata = JSON.stringify({
-                version: '1.0.0', // Replace with actual HQPlayer version
-                timestamp: Date.now()
-            });
-
-            const encryptedMetadata = Buffer.concat([
-                cipher.update(metadata, 'utf8'),
+            const versionInfo = '1.0.0';
+            
+            const encryptedVersion = Buffer.concat([
+                cipher.update(versionInfo, 'utf8'),
                 cipher.final(),
                 cipher.getAuthTag()
             ]);
@@ -122,18 +151,33 @@ class AuthThread {
             this.sessions.set(sessionId, {
                 clientId,
                 sessionKey,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                lastActivity: Date.now(),
+                hqpVersion: '1.0.0'
             });
 
+            // Save metadata immediately
+            this.saveMetadata();
+
             // 6. Return response
-            return {
+            const response = {
                 sessionId,
-                publicKey: this.ecdh.getPublicKey(),
+                publicKey: this.ecdh.getPublicKey().toString('base64'),
                 signature: this.signResponse(this.ecdh.getPublicKey()),
-                metadata: encryptedMetadata.toString('base64'),
-                nonce: nonce.toString('base64')
+                nonce: nonce.toString('base64'),
+                version: encryptedVersion.toString('base64')
             };
+
+            // Notify parent of successful connection
+            parentPort.postMessage({
+                type: 'connected',
+                sessionId,
+                hqpVersion: '1.0.0'
+            });
+
+            return response;
         } catch (error) {
+            console.error('Error in session authentication:', error);
             return { error: error.message };
         }
     }
@@ -172,15 +216,21 @@ class AuthThread {
 
     verifySignature(clientId, publicKey, signature) {
         try {
-            const storedKey = this.clientKeys.get(clientId);
-            if (!storedKey) {
+            const clientKeys = this.clientKeys.get(clientId);
+            if (!clientKeys) {
                 return false;
             }
 
-            const verify = crypto.createVerify('SHA256');
-            verify.update(publicKey);
-            return verify.verify(
-                { key: Buffer.from(storedKey, 'base64'), type: 'spki', format: 'der' },
+            const publicKeyObj = crypto.createPublicKey({
+                key: Buffer.from(clientKeys.publicKey, 'base64'),
+                type: 'spki',
+                format: 'der'
+            });
+
+            return crypto.verify(
+                null,
+                Buffer.from(publicKey, 'base64'),
+                publicKeyObj,
                 Buffer.from(signature, 'base64')
             );
         } catch (error) {
@@ -191,12 +241,18 @@ class AuthThread {
 
     signResponse(data) {
         try {
-            const sign = crypto.createSign('SHA256');
-            sign.update(data);
-            return sign.sign(
-                { key: Buffer.from(this.serverKeys.privateKey, 'base64'), type: 'pkcs8', format: 'der' },
-                'base64'
-            );
+            const clientKeys = this.clientKeys.get('hqpwv-server');
+            if (!clientKeys) {
+                throw new Error('No client keys found');
+            }
+
+            const privateKey = crypto.createPrivateKey({
+                key: Buffer.from(clientKeys.privateKey, 'base64'),
+                type: 'pkcs8',
+                format: 'der'
+            });
+
+            return crypto.sign(null, Buffer.from(data, 'base64'), privateKey).toString('base64');
         } catch (error) {
             console.error('Error signing response:', error);
             return Buffer.from('error-signing').toString('base64');
@@ -209,4 +265,7 @@ const authThread = new AuthThread();
 parentPort.on('message', async (message) => {
     const response = await authThread.handleMessage(message);
     parentPort.postMessage(response);
-}); 
+});
+
+// Send ready message when initialized
+parentPort.postMessage({ type: 'ready' }); 
