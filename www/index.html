@@ -442,12 +442,29 @@
 				<!-- !important-->
 				<div id="breakpointIndicator"></div>
 
-				<div id="authMetadataView" class="view">
-					<div class="view-header">
-						<div class="view-title">Connection Details</div>
-						<div id="authMetadataCloseButton" class="view-close-button">×</div>
+				<div id="authMetadataView" class="subview">
+					<div class="viewHeader">
+						<div class="title">Authenticated Control Connection</div>
+						<div class="iconButton closeButton"></div>
 					</div>
-					<div id="authMetadataContent" class="view-content"></div>
+					<div class="view-content">
+						<div class="auth-metadata-section">
+							<h3>Connection Status</h3>
+							<p id="authConnectionStatus">Not connected</p>
+						</div>
+						<div class="auth-metadata-section">
+							<h3>Last Check</h3>
+							<p id="authLastCheck">Never</p>
+						</div>
+						<div class="auth-metadata-section">
+							<h3>Session ID</h3>
+							<p id="authSessionId">None</p>
+						</div>
+						<div class="auth-metadata-section">
+							<h3>HQP Version</h3>
+							<p id="authHqpVersion">Unknown</p>
+						</div>
+					</div>
 				</div>
 
 			</div> <!-- #mainArea -->
