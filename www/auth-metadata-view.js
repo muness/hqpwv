@@ -73,6 +73,26 @@ class AuthMetadataView {
         }));
       });
 
+      // Get current configuration
+      Service.queueCommandFront(Commands.configurationGet(), (currentConfigData) => {
+        if (!currentConfigData || currentConfigData.error) {
+          console.error('Failed to get current configuration:', currentConfigData?.error);
+          return;
+        }
+
+        console.log('Current configuration response:', currentConfigData);
+        const currentConfig = currentConfigData.ConfigurationGet;
+        console.log('Parsed current configuration:', currentConfig);
+        
+        if (currentConfig && currentConfig['@_value']) {
+          const currentConfigName = currentConfig['@_value'];
+          console.log('Current configuration name:', currentConfigName);
+          console.log('Available options:', $select.find('option').map(function() { return $(this).val(); }).get());
+          $select.val(currentConfigName);
+          console.log('Selected value after setting:', $select.val());
+        }
+      });
+
       // Add event listener for configuration selection
       $select.off('change').on('change', (e) => {
         const selectedConfig = e.target.value;
